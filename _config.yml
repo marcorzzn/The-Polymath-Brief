@@ -1,6 +1,8 @@
-title: THE POLYMATH BRIEF
-description: Intelligence Strategica Quotidiana
+title: IL POLIMATE
+description: L'essenziale strategico, ogni mattina.
 theme: jekyll-theme-minimal
-url: "https://marcorzzn.github.io" # Sostituisci col tuo username se diverso
-baseurl: "/The-Polymath-Brief" # Sostituisci col nome ESATTO della repo
+lang: it-IT
+url: "https://marcorzzn.github.io"
+baseurl: ""
 future: true
+show_downloads: false
