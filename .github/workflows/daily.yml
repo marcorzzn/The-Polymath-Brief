@@ -1,0 +1,38 @@
+name: Daily Polymath Brief
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # Esegue ogni giorno alle 07:00 UTC (08:00 o 09:00 in Italia)
+  workflow_dispatch: # Ti permette di avviarlo manualmente col pulsante
+
+permissions:
+  contents: write # FONDAMENTALE: Permette al bot di salvare il file markdown
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Libraries
+        run: pip install openai tavily-python
+
+      - name: Run Generator Script
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: python daily_brief.py
+
+      - name: Commit and Push Report
+        run: |
+          git config --global user.name 'Polymath Bot'
+          git config --global user.email 'bot@users.noreply.github.com'
+          git add _posts/
+          git commit -m "New Brief Generated" || echo "Nessun cambiamento da committare"
+          git push
