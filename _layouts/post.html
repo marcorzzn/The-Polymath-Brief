@@ -16,7 +16,7 @@ layout: default
     <article style="font-family: 'Inter', sans-serif; font-size: 1.2rem; line-height: 1.6; color: inherit;">
         
         <style>
-            /* Titoli Sezioni: Playfair Display (come il logo) */
+            /* Titoli Sezioni: Playfair Display */
             article h2 { 
                 font-family: 'Playfair Display', serif; 
                 font-size: 2.2rem; 
@@ -43,7 +43,7 @@ layout: default
                 text-align: left; 
             }
 
-            /* Link Fonte */
+            /* Link Fonte: Rosso e discreto */
             article a { 
                 color: #d00; 
                 text-decoration: none; 
@@ -55,6 +55,9 @@ layout: default
             /* Liste */
             article ul { padding-left: 20px; margin-bottom: 30px; }
             article li { margin-bottom: 10px; }
+            
+            /* Rimuove HR se presente */
+            article hr { display: none; }
         </style>
 
         {{ content }}
