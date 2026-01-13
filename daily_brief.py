@@ -5,29 +5,30 @@ import feedparser
 import concurrent.futures
 from groq import Groq
 
-# --- CONFIGURAZIONE BILANCIATA ---
+# ================= CONFIGURAZIONE =================
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-MAX_WORKERS = 20            
-LOOKBACK_HOURS = 30         # 30 Ore: Compromesso ideale freschezza/copertura
-MAX_SECTION_CONTEXT = 60000 # Massima capacità di lettura per trovare più notizie
+MAX_WORKERS = 20
+LOOKBACK_HOURS = 30
+MAX_SECTION_CONTEXT = 60000
 
 if not GROQ_API_KEY:
-    print("ERRORE CRITICO: Manca la GROQ_API_KEY.")
+    print("ERRORE: GROQ_API_KEY mancante")
     exit(1)
 
-# --- FUNZIONE DATA ITALIANA ---
+# ================= DATA IN ITALIANO =================
 def get_italian_date():
     months = {
-        1: "gennaio", 2: "febbraio", 3: "marzo", 4: "aprile", 5: "maggio", 6: "giugno",
-        7: "luglio", 8: "agosto", 9: "settembre", 10: "ottobre", 11: "novembre", 12: "dicembre"
+        1: "gennaio", 2: "febbraio", 3: "marzo", 4: "aprile",
+        5: "maggio", 6: "giugno", 7: "luglio", 8: "agosto",
+        9: "settembre", 10: "ottobre", 11: "novembre", 12: "dicembre"
     }
     now = datetime.datetime.now()
     return f"{now.day} {months[now.month]} {now.year}"
 
-# --- 1. FONTI D'ELITE (CONFIGURAZIONE UTENTE) ---
+# ================= FONTI =================
 CLUSTERS = {
     "01_AI_RESEARCH": {
-        "name": "MENTE SINTETICA & LABORATORI AI",
+        "name": "INTELLIGENZA ARTIFICIALE",
         "desc": "Breakthroughs tecnici.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=50",
@@ -44,7 +45,7 @@ CLUSTERS = {
         ]
     },
     "02_QUANTUM": {
-        "name": "FISICA DI FRONTIERA & QUANTUM",
+        "name": "FISICA DI FRONTIERA",
         "desc": "Calcolo quantistico e fisica.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=40",
@@ -58,7 +59,7 @@ CLUSTERS = {
         ]
     },
     "03_MATH_FRONTIER": {
-        "name": "MATEMATICA AVANZATA & MODELLISTICA",
+        "name": "MATEMATICA",
         "desc": "Lista Custom Utente.",
         "urls": [
             "https://eprint.iacr.org/rss/rss.xml",
@@ -77,7 +78,7 @@ CLUSTERS = {
         ]
     },
     "04_BIO_SYNTHETIC": {
-        "name": "BIOLOGIA SINTETICA & MED-TECH",
+        "name": "BIOLOGIA & BIOTECNOLOGIE",
         "desc": "Genomica, CRISPR.",
         "urls": [
             "https://connect.biorxiv.org/biorxiv_xml.php?subject=synthetic_biology",
@@ -119,7 +120,7 @@ CLUSTERS = {
         ]
     },
     "07_CHIP_DESIGN": {
-        "name": "ARCHITETTURE HARDWARE",
+        "name": "HARDWARE",
         "desc": "GPU Design, HPC.",
         "urls": [
             "https://spectrum.ieee.org/feeds/topic/semiconductors/rss",
@@ -131,7 +132,7 @@ CLUSTERS = {
         ]
     },
     "08_MATERIALS": {
-        "name": "SCIENZA DEI MATERIALI",
+        "name": "MATERIALI",
         "desc": "Batterie, Chimica.",
         "urls": [
             "https://chemrxiv.org/engage/chemrxiv/rss",
@@ -156,7 +157,7 @@ CLUSTERS = {
         ]
     },
     "10_GEO_DEFENSE": {
-        "name": "IL GRANDE GIOCO (DIFESA)",
+        "name": "DIFESA",
         "desc": "Strategie militari.",
         "urls": [
             "https://rusi.org/rss.xml",
@@ -215,33 +216,39 @@ CLUSTERS = {
     }
 }
 
-# --- 2. ENGINE DI RACCOLTA (STEALTH MODE) ---
+# ================= RACCOLTA FEED =================
 def fetch_feed(url):
     try:
-        # Browser Chrome User Agent per evitare blocchi 403
-        d = feedparser.parse(url, agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        d = feedparser.parse(url)
         items = []
+
         now = datetime.datetime.now(datetime.timezone.utc)
         cutoff = now - datetime.timedelta(hours=LOOKBACK_HOURS)
-        
+
         for entry in d.entries:
             pub_date = None
-            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
                 pub_date = datetime.datetime(*entry.published_parsed[:6], tzinfo=datetime.timezone.utc)
-            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+            elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
-            
-            # FILTRO 30H: Compromesso per coprire fusi orari
+
             if not pub_date or pub_date > cutoff:
-                content = "No content"
-                if hasattr(entry, 'summary'): content = entry.summary
-                elif hasattr(entry, 'content'): content = entry.content[0].value
-                elif hasattr(entry, 'description'): content = entry.description
-                
-                content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:3000]
-                source = d.feed.get('title', 'Fonte')
+                content = ""
+                if hasattr(entry, "summary"):
+                    content = entry.summary
+                elif hasattr(entry, "content"):
+                    content = entry.content[0].value
+
+                content = content.replace("<p>", "").replace("</p>", "").strip()[:3000]
+                source = d.feed.get("title", "Fonte")
                 link = entry.link
-                items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
+
+                items.append(
+                    f"SRC: {source}\n"
+                    f"LINK: {link}\n"
+                    f"TITLE: {entry.title}\n"
+                    f"TXT: {content}\n"
+                )
         return items
     except:
         return []
@@ -250,97 +257,82 @@ def get_cluster_data(urls):
     data = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         results = executor.map(fetch_feed, urls)
-        for res in results:
-            data.extend(res)
+        for r in results:
+            data.extend(r)
     return data
 
-# --- 3. ANALISTA AI (PROMPT CORRETTO PER LINK E STILE) ---
-def analyze_cluster(cluster_key, info, raw_text):
-    if not raw_text: return ""
-    
-    print(f"  > Analisi {cluster_key} ({len(raw_text)} chars)...")
-    
-    system_prompt = f"""
-    SEI: "Il Polimate". SETTORE: {info['name']}
-    
-    OBIETTIVO: Selezionare notizie di ALTO VALORE.
-    Non essere troppo restrittivo: se ci sono aggiornamenti tecnici validi nelle ultime 30 ore, RIPORTALI.
-    Voglio densità: idealmente 3-5 notizie per settore, se i dati lo permettono.
-    
-    REGOLE DI STILE OBBLIGATORIE:
-    1. TITOLI: In Italiano, stile "Sentence case" (Solo la prima lettera maiuscola, il resto minuscolo, salvo nomi propri).
-       - Esempio CORRETTO: "Nuova scoperta sui semiconduttori"
-       - Esempio SBAGLIATO: "Nuova Scoperta Sui Semiconduttori" (Titolo Inglese)
-    
-    2. LINK (CRUCIALE): 
-       - Alla fine del paragrafo, vai a capo.
-       - Scrivi ESATTAMENTE: **Fonte:** [Vedi Fonte](LINK_ORIGINALE)
-       - Il link DEVE essere in formato Markdown cliccabile.
-    
-    3. CONTENUTO:
-       - Analisi professionale, colta, densa.
-       - Niente sottotitoli o introduzioni.
-    
-    FORMATO OUTPUT:
-    ### [Titolo in italiano corretto]
-    [Testo dell'analisi...]
-    
-    **Fonte:** [Vedi Fonte](URL)
-    
-    (Riga vuota)
-    """
-    
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"DATI DA ANALIZZARE:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
-            ],
-            temperature=0.3, # Leggermente creativo per l'analisi, ma rigido sulla struttura
-            max_tokens=7000 
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        print(f"Error {cluster_key}: {e}")
+# ================= ANALISI AI =================
+def analyze_cluster(info, raw_text):
+    if not raw_text:
         return ""
 
-# --- 4. MAIN SEQUENCER ---
-print("Avvio IL POLIMATE (Fixed Links & Style)...")
-start_time = time.time()
+    system_prompt = f"""
+SEI: Il Polimate
+SETTORE: {info['name']}
+
+OBIETTIVO:
+Produrre una rassegna giornalistica tecnica e strategica di altissima qualità.
+
+TITOLI:
+- Italiano corretto
+- SOLO la prima parola con iniziale maiuscola
+- Nomi propri ammessi
+- VIETATO lo stile Title Case inglese
+
+QUANTITÀ:
+- Almeno 3 notizie
+- Idealmente 4–5 se possibile
+- Vietato restituire sezioni quasi vuote
+
+LINK:
+- Solo Markdown: [Nome fonte](https://...)
+- Vietati URL nudi
+
+FORMATO OBBLIGATORIO:
+
+### Titolo in italiano
+
+Paragrafetto di analisi di 4–6 righe. Qui il testo FINISCE.
+
+Fonte: [Nome della fonte](URL)
+
+Dopo "Fonte:" si va subito a capo e si inizia una nuova notizia.
+"""
+
+    client = Groq(api_key=GROQ_API_KEY)
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": raw_text[:MAX_SECTION_CONTEXT]}
+        ],
+        temperature=0.25,
+        max_tokens=7000
+    )
+
+    return completion.choices[0].message.content.strip()
+
+# ================= MAIN =================
+print("Avvio generazione rassegna")
+start = time.time()
+
 italian_date = get_italian_date()
 today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
+full_report = ""
 
-full_report = "" 
-
-for key, info in CLUSTERS.items():
-    print(f"\n--- Scansione: {info['name']} ---")
-    raw_data = get_cluster_data(info['urls'])
-    
+for _, info in CLUSTERS.items():
+    raw_data = get_cluster_data(info["urls"])
     if raw_data:
-        raw_text = "\n---\n".join(raw_data)
-        analysis = analyze_cluster(key, info, raw_text)
-        
-        # Abbassato il limite caratteri per accettare anche analisi più sintetiche
-        if analysis and len(analysis) > 20:
+        analysis = analyze_cluster(info, "\n---\n".join(raw_data))
+        if analysis:
             full_report += f"\n\n## {info['name']}\n\n{analysis}\n"
-        else:
-            print("  > Contenuto scartato o insufficiente.")
-    else:
-        print("  > Nessun dato grezzo rilevato.")
-    
-    # Pausa 25s per evitare blocchi API
     time.sleep(25)
 
-# SALVATAGGIO
-if not os.path.exists("_posts"):
-    os.makedirs("_posts")
-
+# ================= SALVATAGGIO =================
+os.makedirs("_posts", exist_ok=True)
 filename = f"_posts/{today_iso}-brief.md"
 
-# RIMOSSO EXCERPT (Nessun sottotitolo)
-markdown_file = f"""---
+markdown = f"""---
 title: "La Rassegna del {italian_date}"
 date: {today_iso}
 layout: post
@@ -349,12 +341,11 @@ layout: post
 {full_report}
 """
 
-if len(full_report) > 100:
-    with open(filename, "w", encoding='utf-8') as f:
-        f.write(markdown_file)
-    print(f"\nDossier salvato: {filename}")
+if len(full_report) > 200:
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(markdown)
+    print(f"File generato: {filename}")
 else:
-    print("\nATTENZIONE: Report vuoto.")
+    print("ATTENZIONE: contenuto insufficiente")
 
-duration = (time.time() - start_time) / 60
-print(f"Tempo totale: {duration:.1f} minuti.")
+print(f"Tempo totale: {(time.time() - start) / 60:.1f} minuti")
