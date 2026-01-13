@@ -1,14 +1,18 @@
 title: IL POLIMATE
+description: Intelligence Strategica.
+author: marcorzzn
 email: you@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  Intelligence Strategica.
-baseurl: "" # Lascia vuoto se il sito è marcorzzn.github.io
-url: "https://marcorzzn.github.io" 
-twitter_username: marcorzzn
-github_username:  marcorzzn
 
-# IMPOSIZIONI TECNICHE
+# URL CONFIGURATION
+# Se la tua repo si chiama "The-Polymath-Brief", baseurl DEVE essere "/The-Polymath-Brief"
+# Se l'hai rinominata "marcorzzn.github.io", lascialo vuoto ""
+baseurl: "/The-Polymath-Brief" 
+url: "https://marcorzzn.github.io"
+
+# BUILD SETTINGS
 markdown: kramdown
-theme: jekyll-theme-minimal
+# theme: jekyll-theme-minimal  <-- LO COMMENTIAMO PERCHE' USIAMO IL NOSTRO LAYOUT CUSTOM
 permalink: /:year/:month/:day/:title.html
 future: true
+plugins:
+  - jekyll-feed
