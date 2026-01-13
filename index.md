@@ -25,7 +25,7 @@ title: Home
         color: #444; margin-top: 10px;
     }
 
-    /* ARTICOLO IN EVIDENZA */
+    /* ARTICOLO */
     .feature-title {
         font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 700;
         line-height: 1.1; color: #000; text-decoration: none; display: block; margin-bottom: 15px;
@@ -57,7 +57,9 @@ title: Home
         {{ latest.title }}
     </a>
     
-    <!-- Sottotitolo rimosso come richiesto -->
+    <div style="font-size: 1.1rem; margin-bottom: 20px;">
+        {{ latest.excerpt | strip_html | truncatewords: 30 }}
+    </div>
     
     <a href="{{ latest.url | relative_url }}" class="read-btn">
         LEGGI IL DOSSIER &rarr;
