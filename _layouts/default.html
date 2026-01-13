@@ -1,3 +1,10 @@
+Ecco il codice completo e pulito per `_layouts/default.html`.
+
+Ho rimosso definitivamente il traduttore e corretto il pulsante Home affinché punti sempre alla pagina principale corretta.
+
+### File: `_layouts/default.html`
+
+```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -11,9 +18,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* RESET */
+        /* RESET BASE */
         body, html { margin: 0; padding: 0; box-sizing: border-box; }
         
+        /* NASCONDE L'HEADER DI DEFAULT DEL TEMA JEKYLL (Fondamentale) */
+        header { display: none !important; }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #fdfdfd;
@@ -22,21 +32,14 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* STRUTTURA */
+        /* STRUTTURA CENTRALE */
         .wrapper {
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        /* NASCONDE IL VECCHIO HEADER DI GITHUB (Sicurezza extra) */
-        header { display: none !important; }
-
-        /* DARK MODE */
-        body.dark-mode { background: #121212; color: #e0e0e0; }
-        body.dark-mode a { color: #fff; }
-        
-        /* PULSANTI FISSI */
+        /* PULSANTI FLOTTANTI (SOLO HOME E DARK MODE) */
         .floating-controls {
             position: fixed;
             top: 20px;
@@ -45,33 +48,63 @@
             gap: 10px;
             z-index: 9999;
             background: rgba(255,255,255,0.8);
-            padding: 5px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 50px; /* Arrotondato per essere più elegante */
             backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        body.dark-mode .floating-controls { background: rgba(0,0,0,0.8); }
 
         .ctrl-btn {
-            background: #fff; border: 1px solid #ccc; color: #333;
-            width: 40px; height: 40px; border-radius: 50%;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2em; text-decoration: none; transition: transform 0.2s;
+            background: #fff; 
+            border: 1px solid #ccc; 
+            color: #333;
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%;
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 1.1em; 
+            text-decoration: none; 
+            transition: all 0.2s;
         }
-        .ctrl-btn:hover { transform: scale(1.1); border-color: #000; }
-        body.dark-mode .ctrl-btn { background: #222; border-color: #444; color: #fff; }
+        
+        .ctrl-btn:hover { 
+            transform: scale(1.1); 
+            border-color: #000; 
+            background: #000;
+            color: #fff;
+        }
 
-        /* TRANSLATE HIDE */
-        .goog-te-banner-frame { display: none !important; }
-        body { top: 0px !important; }
+        /* DARK MODE STYLES */
+        body.dark-mode { background: #121212; color: #e0e0e0; }
+        body.dark-mode a { color: #fff; }
+        
+        body.dark-mode .floating-controls { 
+            background: rgba(30,30,30,0.8); 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        body.dark-mode .ctrl-btn { 
+            background: #222; 
+            border-color: #444; 
+            color: #fff; 
+        }
+        
+        body.dark-mode .ctrl-btn:hover { 
+            background: #fff; 
+            color: #000; 
+        }
+
     </style>
 </head>
 <body>
 
     <div class="floating-controls">
-        <a href="/" class="ctrl-btn" title="Home"><i class="fas fa-home"></i></a>
-        <button class="ctrl-btn" onclick="toggleDark()" title="Dark Mode"><i class="fas fa-moon"></i></button>
-        <div id="google_translate_element" style="opacity: 0; width: 1px; height: 1px; overflow: hidden;"></div>
-        <button class="ctrl-btn" onclick="triggerTranslate()" title="Translate"><i class="fas fa-language"></i></button>
+        <a href="{{ site.baseurl }}/" class="ctrl-btn" title="Torna alla Home"><i class="fas fa-home"></i></a>
+        
+        <button class="ctrl-btn" onclick="toggleDark()" title="Cambia Tema"><i class="fas fa-moon"></i></button>
     </div>
 
     <div class="wrapper">
@@ -81,19 +114,19 @@
     <script>
         function toggleDark() {
             document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Cambia icona se necessario (opzionale, qui resta la luna)
         }
-        if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
-        function triggerTranslate() {
-            var select = document.querySelector(".goog-te-combo");
-            if(select) { select.value = select.value === 'it' ? 'en' : 'it'; select.dispatchEvent(new Event('change')); }
-        }
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'it', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        // Carica preferenza utente all'avvio
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
         }
     </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </body>
 </html>
+
+```
