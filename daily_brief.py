@@ -9,12 +9,13 @@ import pytz
 
 # ================== CONFIGURAZIONE ==================
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-MAX_WORKERS = 10     # RIDOTTO a 10 per evitare che ArXiv/Nature ti blocchino l'IP
-LOOKBACK_HOURS = 48  # 48 ore per coprire anche notizie della notte precedente
+MAX_WORKERS = 10  # Ridotto per evitare ban IP
+LOOKBACK_HOURS = 48
 MAX_SECTION_CONTEXT = 60000
 
 if not GROQ_API_KEY:
-    print("⚠️ ATTENZIONE: GROQ_API_KEY non trovata. L'analisi AI fallirà.")
+    print("⚠️ ATTENZIONE: GROQ_API_KEY non trovata.")
+    exit(1)
 
 # ================== DATA ITALIANA ==================
 def get_italian_date():
@@ -32,8 +33,7 @@ def get_italian_date():
 # ================== CLUSTER COMPLETI ==================
 CLUSTERS = {
     "01_AI_RESEARCH": {
-        "name": "INTELLIGENZA ARTIFICIALE",
-        "desc": "Breakthroughs tecnici.",
+        "name": "Intelligenza Artificiale",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=50",
             "http://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=50",
@@ -46,8 +46,7 @@ CLUSTERS = {
         ]
     },
     "02_QUANTUM": {
-        "name": "FISICA DI FRONTIERA",
-        "desc": "Calcolo quantistico e fisica.",
+        "name": "Fisica di frontiera",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=40",
             "https://www.nature.com/nphys.rss",
@@ -57,8 +56,7 @@ CLUSTERS = {
         ]
     },
     "03_MATH_FRONTIER": {
-        "name": "MATEMATICA",
-        "desc": "Lista Custom Utente.",
+        "name": "Matematica e crittografia",
         "urls": [
             "https://eprint.iacr.org/rss/rss.xml",
             "https://blog.cryptographyengineering.com/feed/",
@@ -69,8 +67,7 @@ CLUSTERS = {
         ]
     },
     "04_BIO_SYNTHETIC": {
-        "name": "BIOLOGIA E BIOTECNOLOGIE",
-        "desc": "Genomica, CRISPR.",
+        "name": "Biologia e biotecnologie",
         "urls": [
             "https://connect.biorxiv.org/biorxiv_xml.php?subject=synthetic_biology",
             "https://www.nature.com/nbt.rss",
@@ -79,8 +76,7 @@ CLUSTERS = {
         ]
     },
     "05_CYBER_WARFARE": {
-        "name": "CYBER-WARFARE E INTELLIGENCE",
-        "desc": "InfoSec, Zero-Day.",
+        "name": "Cyber-warfare e intelligence",
         "urls": [
             "https://googleprojectzero.blogspot.com/feeds/posts/default",
             "https://krebsonsecurity.com/feed/",
@@ -90,8 +86,7 @@ CLUSTERS = {
         ]
     },
     "06_CHIP_FAB": {
-        "name": "SILICIO E FONDERIE",
-        "desc": "TSMC, ASML.",
+        "name": "Silicio e fonderie",
         "urls": [
             "https://semiengineering.com/feed/",
             "https://www.semiconductors.org/feed/",
@@ -100,8 +95,7 @@ CLUSTERS = {
         ]
     },
     "07_CHIP_DESIGN": {
-        "name": "HARDWARE",
-        "desc": "GPU Design, HPC.",
+        "name": "Hardware e architetture",
         "urls": [
             "https://www.anandtech.com/rss/",
             "https://www.tomshardware.com/feeds/all",
@@ -110,8 +104,7 @@ CLUSTERS = {
         ]
     },
     "08_MATERIALS": {
-        "name": "MATERIALI",
-        "desc": "Batterie, Chimica.",
+        "name": "Scienza dei materiali",
         "urls": [
             "https://www.nature.com/nmat.rss",
             "https://cen.acs.org/rss/materials.xml",
@@ -119,8 +112,7 @@ CLUSTERS = {
         ]
     },
     "09_SPACE_FRONTIER": {
-        "name": "SPACE ECONOMY",
-        "desc": "ESA, NASA.",
+        "name": "Space economy",
         "urls": [
             "https://spacenews.com/feed/",
             "https://spaceflightnow.com/feed/",
@@ -128,8 +120,7 @@ CLUSTERS = {
         ]
     },
     "10_GEO_DEFENSE": {
-        "name": "DIFESA",
-        "desc": "Strategie militari.",
+        "name": "Difesa e conflitti",
         "urls": [
             "https://rusi.org/rss.xml",
             "https://warontherocks.com/feed/",
@@ -138,8 +129,7 @@ CLUSTERS = {
         ]
     },
     "11_GEO_STRATEGY": {
-        "name": "GEOPOLITICA E DIPLOMAZIA",
-        "desc": "Analisi globale.",
+        "name": "Geopolitica e diplomazia",
         "urls": [
             "https://www.foreignaffairs.com/rss.xml",
             "https://www.csis.org/rss/analysis",
@@ -148,8 +138,7 @@ CLUSTERS = {
         ]
     },
     "12_CENTRAL_BANKS": {
-        "name": "MACROECONOMIA",
-        "desc": "Banche Centrali.",
+        "name": "Macroeconomia",
         "urls": [
             "https://www.bis.org/doclist/research.rss",
             "https://www.nber.org/rss/new.xml",
@@ -158,8 +147,7 @@ CLUSTERS = {
         ]
     },
     "13_GLOBAL_ENERGY": {
-        "name": "ENERGIA E RISORSE",
-        "desc": "Mercati energetici.",
+        "name": "Energia e risorse",
         "urls": [
             "https://oilprice.com/rss/main",
             "https://iea.org/rss/news",
@@ -172,14 +160,13 @@ CLUSTERS = {
 def fetch_feed(url):
     print(f"📡 Scaricando: {url}...")
     try:
-        # User Agent Standard per evitare blocchi
-        d = feedparser.parse(url, agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        d = feedparser.parse(url, agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         items = []
         now = datetime.datetime.now(datetime.timezone.utc)
         cutoff = now - datetime.timedelta(hours=LOOKBACK_HOURS)
         
         if not d.entries:
-            print(f"   ⚠️ Nessuna voce in {url} (Possibile blocco IP o feed vuoto)")
+            print(f"   ⚠️ Nessuna voce in {url}")
             return []
 
         for entry in d.entries:
@@ -189,7 +176,6 @@ def fetch_feed(url):
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
             
-            # LOGICA BOCCA LARGA: Se non c'è data, la prendiamo per sicurezza.
             if not pub_date or pub_date > cutoff:
                 content = "No content"
                 if hasattr(entry, 'summary'): 
@@ -199,26 +185,24 @@ def fetch_feed(url):
                 elif hasattr(entry, 'description'): 
                     content = entry.description
                 
-                # Pulizia HTML Robusta
                 try:
                     soup = BeautifulSoup(content, "html.parser")
                     content = soup.get_text(separator=" ", strip=True)[:5000]
-                except Exception:
+                except:
                     content = str(content).replace("<p>", "").replace("</p>", "").strip()[:5000]
 
                 source = d.feed.get('title', 'Fonte')
                 link = entry.link
                 items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
         
-        print(f"   ✅ Trovati {len(items)} articoli in {url}")
+        print(f"   ✅ Trovati {len(items)} articoli")
         return items
     except Exception as e:
-        print(f"   ❌ ERRORE su {url}: {e}")
+        print(f"   ❌ ERRORE: {e}")
         return []
 
 def get_cluster_data(urls):
     data = []
-    # Usiamo il ThreadPoolExecutor ma con meno worker per non farci bannare
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         results = executor.map(fetch_feed, urls)
         for res in results:
@@ -226,62 +210,62 @@ def get_cluster_data(urls):
     return data
 
 # ================== ANALISTA AI ==================
-def analyze_cluster(cluster_key, info, raw_text, attempt=1):
+def analyze_cluster(cluster_key, info, raw_text):
     if not raw_text: 
         return ""
     
-    print(f"  > Tentativo {attempt} - Analisi AI su {cluster_key} ({len(raw_text)} chars)...")
+    print(f"  🤖 Analisi AI su {cluster_key} ({len(raw_text)} chars)...")
     
-    # PROMPT BLINDATO PER LINK CLICCABILI
-    system_prompt = f"""Sei un analista che deve scrivere da 2 a 4 notizie principali per il settore: {info['name']}
-    
-    REGOLE DI FORMATTAZIONE OBBLIGATORIE:
-    1. TITOLI: In Italiano, solo la prima lettera maiuscola (Sentence case).
-    2. FONTI: Devi usare ESATTAMENTE questo formato Markdown per rendere i link cliccabili:
-       **Fonte:** [Vedi Fonte](URL_ORIGINALE)
-       
-       (Non scrivere mai l'URL nudo come 'https://...', usa sempre le parentesi [Testo](URL) per creare il link).
-    
-    3. CONTENUTO: Seleziona solo notizie rilevanti tecnicamente.
-    
-    ESEMPIO DI OUTPUT CORRETTO:
-    ### Titolo della notizia in italiano
-    Qui scrivi l'analisi della notizia in 2 o 3 righe massimo.
-    
-    **Fonte:** [Vedi Fonte](https://www.esempio.com/news)
-    """
+    system_prompt = f"""Sei un analista di intelligence strategica per il settore: {info['name']}
+
+OBIETTIVO: Creare un report dettagliato con MOLTE notizie separate.
+
+REGOLE OBBLIGATORIE:
+1. Analizza OGNI notizia rilevante separatamente
+2. Se ci sono 10 notizie valide, scrivi 10 paragrafi
+3. Se ci sono 20 notizie valide, scrivi 20 paragrafi
+4. Titoli in italiano (minuscolo dopo la maiuscola iniziale)
+5. NESSUN <hr> o linee orizzontali
+6. Ogni notizia DEVE terminare con "Fonte: [url cliccabile]"
+
+FORMATO ESATTO per OGNI notizia:
+
+### Titolo della notizia in italiano
+Analisi tecnica dettagliata di 3-5 righe. Spiega cosa, come e perché è rilevante. Usa terminologia tecnica appropriata.
+
+Fonte: [url fornito nell'input]
+
+IMPORTANTE:
+- NON raggruppare più notizie insieme
+- NON fare sintesi generali
+- Scrivi UN paragrafo per OGNI notizia
+- Massima densità informativa
+- NESSUNA introduzione, NESSUNA conclusione
+- Solo la lista delle analisi"""
     
     try:
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "user", "content": f"{system_prompt}\n\nMATERIALE DA ANALIZZARE:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"INPUT DATI:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
             ],
-            temperature=0.3, # Bassa temperatura = più rispetto delle regole
+            temperature=0.2,
             max_tokens=6000
         )
         
-        result = completion.choices[0].message.content
-        news_count = result.count("###")
-        
-        # Retry logic se genera poco
-        if news_count < 2 and attempt < 2:
-            print(f"  ⚠️ Poche notizie ({news_count}), ritento...")
-            time.sleep(2)
-            return analyze_cluster(cluster_key, info, raw_text, attempt + 1)
-            
-        return result
+        return completion.choices[0].message.content
         
     except Exception as e:
         print(f"  ❌ Errore AI: {e}")
         return ""
 
 # ================== MAIN ==================
-print("🚀 AVVIO POLIMATE (Fixed Links Version)...")
+print("🚀 AVVIO IL POLIMATE...")
 start_time = time.time()
 italian_date = get_italian_date()
-# Imposta timezone per il nome file
+
 try:
     tz = pytz.timezone("Europe/Rome")
     today_iso = datetime.datetime.now(tz).strftime("%Y-%m-%d")
@@ -292,21 +276,28 @@ report_parts = []
 total_news = 0
 
 for key, info in CLUSTERS.items():
-    print(f"\n--- {info['name']} ---")
+    print(f"\n{'='*60}")
+    print(f"📂 {info['name']}")
+    print(f"{'='*60}")
+    
     raw_data = get_cluster_data(info['urls'])
     
     if raw_data:
         raw_text = "\n---\n".join(raw_data)
         analysis = analyze_cluster(key, info, raw_text)
         
-        if analysis and "###" in analysis:
-            report_parts.append(f"\n\n## {info['name']}\n\n{analysis}\n")
-            total_news += analysis.count("###")
+        if analysis and len(analysis) > 50:
+            report_parts.append(f"\n## {info['name']}\n\n{analysis}\n")
+            news_count = analysis.count("###")
+            total_news += news_count
+            print(f"  ✅ Generate {news_count} notizie")
+        else:
+            print(f"  ⚠️ Nessun output rilevante")
     else:
-        print(f"  ❌ Nessun dato raccolto per questo cluster.")
+        print(f"  ❌ Nessun dato raccolto")
     
-    # Pausa di sicurezza tra cluster
-    time.sleep(5)
+    # Pausa tra cluster
+    time.sleep(8)
 
 # ================== SALVATAGGIO ==================
 if not os.path.exists("_posts"):
@@ -322,10 +313,15 @@ layout: post
 excerpt: "Intelligence strategica su {total_news} aggiornamenti globali."
 ---
 
-{full_report if full_report else "Nessuna notizia rilevante trovata oggi (Controllare Logs)."}
+{full_report if full_report else "Nessuna notizia rilevante trovata oggi."}
 """
 
 with open(filename, "w", encoding='utf-8') as f:
     f.write(markdown_file)
 
-print(f"\n✅ SALVATO: {filename} ({total_news} notizie totali)")
+elapsed = time.time() - start_time
+print(f"\n{'='*60}")
+print(f"✅ COMPLETATO in {elapsed/60:.1f} minuti")
+print(f"📄 File: {filename}")
+print(f"📰 Totale notizie: {total_news}")
+print(f"{'='*60}")
