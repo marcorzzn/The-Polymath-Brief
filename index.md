@@ -57,9 +57,7 @@ title: Home
         {{ latest.title }}
     </a>
     
-    <div style="font-size: 1.1rem; margin-bottom: 20px;">
-        {{ latest.excerpt | strip_html | truncatewords: 30 }}
-    </div>
+    <!-- Sottotitolo rimosso come richiesto -->
     
     <a href="{{ latest.url | relative_url }}" class="read-btn">
         LEGGI IL DOSSIER &rarr;

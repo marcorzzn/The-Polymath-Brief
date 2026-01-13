@@ -4,6 +4,8 @@ import time
 import feedparser
 import concurrent.futures
 from groq import Groq
+from bs4 import BeautifulSoup
+from zoneinfo import ZoneInfo
 
 # ================== CONFIGURAZIONE ==================
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -21,7 +23,8 @@ def get_italian_date():
         5: "maggio", 6: "giugno", 7: "luglio", 8: "agosto",
         9: "settembre", 10: "ottobre", 11: "novembre", 12: "dicembre"
     }
-    now = datetime.datetime.now()
+    # Use Rome timezone
+    now = datetime.datetime.now(ZoneInfo("Europe/Rome"))
     return f"{now.day} {mesi[now.month]} {now.year}"
 
 # ================== CLUSTER COMPLETI ==================
@@ -251,7 +254,14 @@ def fetch_feed(url):
                 elif hasattr(entry, 'description'): 
                     content = entry.description
                 
-                content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:5000]
+                # Clean HTML content using BeautifulSoup
+                try:
+                    soup = BeautifulSoup(content, "html.parser")
+                    content = soup.get_text(separator=" ", strip=True)[:5000]
+                except Exception:
+                    # Fallback to simple cleanup if bs4 fails for some reason
+                    content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:5000]
+
                 source = d.feed.get('title', 'Fonte')
                 link = entry.link
                 items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
@@ -276,24 +286,24 @@ def analyze_cluster(cluster_key, info, raw_text, attempt=1):
     print(f"  > Tentativo {attempt} - Analisi {cluster_key} ({len(raw_text)} chars)...")
     
     # PROMPT ULTRA-SPECIFICO CON ESEMPI
-    system_prompt = f"""Sei un analista che deve scrivere ESATTAMENTE 3 notizie per il settore: {info['name']}
+    system_prompt = f"""Sei un analista che deve scrivere da 2 a 4 notizie principali (basate sulla rilevanza) per il settore: {info['name']}
 
 ESEMPIO DI OUTPUT RICHIESTO (copia questo stile):
 
 ### Nuova vulnerabilità scoperta nei sistemi di machine learning
 Ricercatori di Stanford hanno identificato una falla critica che permette di manipolare output di modelli linguistici. Il problema riguarda il layer di attenzione in architetture transformer. Patch disponibile entro febbraio.
 
-Fonte: https://hai.stanford.edu/news/security-flaw
+Fonte: [https://hai.stanford.edu/news/security-flaw](https://hai.stanford.edu/news/security-flaw)
 
 ### Google presenta framework per training distribuito
 Il nuovo sistema riduce i tempi di addestramento del 40% su cluster GPU. Utilizza tecniche di parallelizzazione dinamica e ottimizzazione della memoria. Release pubblica prevista Q2 2026.
 
-Fonte: https://research.google/blog/distributed-training
+Fonte: [https://research.google/blog/distributed-training](https://research.google/blog/distributed-training)
 
 ### Microsoft investe in startup europea di AI etica
 Accordo da 50 milioni per sviluppare sistemi di auditing automatico. Focus su bias detection e trasparenza algoritmica. Primo prodotto atteso entro 6 mesi.
 
-Fonte: https://microsoft.com/news/ai-ethics-investment
+Fonte: [https://microsoft.com/news/ai-ethics-investment](https://microsoft.com/news/ai-ethics-investment)
 
 ---
 
@@ -307,14 +317,14 @@ FORMATO:
 ### [REGOLE CAPITALIZZAZIONE ITALIANA]
 [2-3 righe analisi]
 
-Fonte: [URL]
+Fonte: [URL](URL)
 
-IMPORTANTE: Devi produrre ESATTAMENTE 3 blocchi come sopra. Se il materiale è scarso, includi anche notizie minori ma tecnicamente rilevanti.
+IMPORTANTE: Devi produrre DA 2 A 4 blocchi come sopra. Seleziona le notizie più rilevanti. Se ci sono notizie eccezionali, fanne fino a 4.
 
 MATERIALE DA ANALIZZARE:
 {raw_text[:MAX_SECTION_CONTEXT]}
 
-RISPONDI ORA CON 3 NOTIZIE:"""
+RISPONDI ORA CON LE NOTIZIE:"""
     
     try:
         client = Groq(api_key=GROQ_API_KEY)
@@ -352,7 +362,7 @@ RISPONDI ORA CON 3 NOTIZIE:"""
 print("🚀 IL POLIMATE - Versione DEBUG\n")
 start_time = time.time()
 italian_date = get_italian_date()
-today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
+today_iso = datetime.datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y-%m-%d")
 
 full_report = ""
 total_news = 0
