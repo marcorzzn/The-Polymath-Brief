@@ -1,84 +1,69 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <title>{{ page.title }}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+---
+layout: default
+---
 
-  <style>
-    body {
-      font-family: Georgia, "Times New Roman", serif;
-      background-color: #fdfdfd;
-      color: #111;
-      margin: 0;
-      padding: 0;
-    }
+<div style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
+    
+    <div style="text-align: center; margin-bottom: 50px; border-bottom: 1px solid #e0e0e0; padding-bottom: 30px;">
+         <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 15px;">
+            Dossier Strategico &bull; {{ page.date | date: "%d %B %Y" }}
+         </div>
+         <h1 style="font-family: 'Playfair Display', serif; font-size: 3.5rem; line-height: 1.1; margin: 0; font-weight: 900; color: inherit;">
+            {{ page.title }}
+         </h1>
+    </div>
 
-    main {
-      max-width: 780px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem;
-    }
+    <article style="font-family: 'Inter', sans-serif; font-size: 1.2rem; line-height: 1.6; color: inherit;">
+        
+        <style>
+            /* Titoli Sezioni: Playfair Display */
+            article h2 { 
+                font-family: 'Playfair Display', serif; 
+                font-size: 2.2rem; 
+                margin-top: 60px; 
+                margin-bottom: 25px; 
+                font-weight: 700;
+                color: inherit;
+                border-bottom: 2px solid currentColor;
+                padding-bottom: 10px;
+            }
+            
+            /* Sottotitoli News */
+            article h3 { 
+                font-family: 'Inter', sans-serif; 
+                font-size: 1.4rem; 
+                font-weight: 700; 
+                margin-top: 40px; 
+                margin-bottom: 10px;
+            }
 
-    h1 {
-      font-size: 2.2rem;
-      margin-bottom: 2rem;
-      font-weight: 700;
-    }
+            /* Testo NON Giustificato (Bandiera a sinistra) */
+            article p { 
+                margin-bottom: 25px; 
+                text-align: left; 
+            }
 
-    h2 {
-      font-size: 1.6rem;
-      margin-top: 3rem;
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 0.3rem;
-    }
+            /* Link Fonte: Rosso e discreto */
+            article a { 
+                color: #d00; 
+                text-decoration: none; 
+                font-weight: 600; 
+                font-size: 0.9em;
+            }
+            article a:hover { text-decoration: underline; }
 
-    h3 {
-      font-size: 1.15rem;
-      margin-top: 2rem;
-      margin-bottom: 0.4rem;
-      font-weight: 700;
-    }
+            /* Liste */
+            article ul { padding-left: 20px; margin-bottom: 30px; }
+            article li { margin-bottom: 10px; }
+            
+            /* Rimuove HR se presente */
+            article hr { display: none; }
+        </style>
 
-    p {
-      line-height: 1.6;
-      margin: 0.3rem 0 0.9rem 0;
-      font-size: 1rem;
-    }
-
-    /* LINK: visibili, eleganti, editoriali */
-    article a {
-      color: #b00000;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      font-weight: 600;
-    }
-
-    article a:hover {
-      opacity: 0.85;
-    }
-
-    footer {
-      margin-top: 4rem;
-      font-size: 0.85rem;
-      color: #666;
-      border-top: 1px solid #ddd;
-      padding-top: 1rem;
-    }
-  </style>
-</head>
-
-<body>
-  <main>
-    <article>
-      <h1>{{ page.title }}</h1>
-      {{ content }}
+        {{ content }}
+    
     </article>
+    
+    <div style="height: 100px;"></div>
 
-    <footer>
-      Pubblicato il {{ page.date | date: "%d/%m/%Y" }}
-    </footer>
-  </main>
-</body>
-</html>
+</div>
