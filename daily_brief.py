@@ -8,8 +8,8 @@ from groq import Groq
 # --- CONFIGURAZIONE ---
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MAX_WORKERS = 50            
-LOOKBACK_HOURS = 48         
-MAX_SECTION_CONTEXT = 28000 # Ridotto per stabilità (evita errori e output vuoti)
+LOOKBACK_HOURS = 24         # TORNATI A 24 ORE (Notizie freschissime)
+MAX_SECTION_CONTEXT = 45000 # ALZATO AL MASSIMO (Per leggere decine di notizie)
 
 if not GROQ_API_KEY:
     print("ERRORE CRITICO: Manca la GROQ_API_KEY.")
@@ -30,8 +30,8 @@ CLUSTERS = {
         "name": "MENTE SINTETICA & LABORATORI AI",
         "desc": "MIT CSAIL, Stanford HAI, DeepMind, ArXiv.",
         "urls": [
-            "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=20",
-            "http://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=20",
+            "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=30",
+            "http://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=30",
             "https://www.csail.mit.edu/news/feed", 
             "https://hai.stanford.edu/news/feed", 
             "https://bair.berkeley.edu/blog/feed.xml", 
@@ -46,7 +46,7 @@ CLUSTERS = {
         "name": "FISICA DI FRONTIERA & QUANTUM",
         "desc": "Caltech, ETH Zurich, Nature Physics.",
         "urls": [
-            "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=15",
+            "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=20",
             "https://www.nature.com/nphys.rss",
             "https://phys.org/rss-feed/physics-news/quantum-physics/",
             "https://www.caltech.edu/c/news/rss", 
@@ -206,19 +206,22 @@ def fetch_feed(url):
         cutoff = now - datetime.timedelta(hours=LOOKBACK_HOURS)
         
         for entry in d.entries:
+            # Parsing data rigoroso
             pub_date = None
             if hasattr(entry, 'published_parsed') and entry.published_parsed:
                 pub_date = datetime.datetime(*entry.published_parsed[:6], tzinfo=datetime.timezone.utc)
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
             
+            # FILTRO 24H: Se non ha data, lo prendiamo (per sicurezza), se ce l'ha deve essere > cutoff
             if not pub_date or pub_date > cutoff:
                 content = "No content"
                 if hasattr(entry, 'summary'): content = entry.summary
                 elif hasattr(entry, 'content'): content = entry.content[0].value
                 elif hasattr(entry, 'description'): content = entry.description
                 
-                content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:2000]
+                # Pulizia HTML per risparmiare token
+                content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:3000]
                 source = d.feed.get('title', 'Fonte')
                 link = entry.link
                 items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
@@ -234,33 +237,36 @@ def get_cluster_data(urls):
             data.extend(res)
     return data
 
-# --- 3. ANALISTA AI (SAFE MODE) ---
+# --- 3. ANALISTA AI (VOLUME MASSIMO) ---
 def analyze_cluster(cluster_key, info, raw_text):
     if not raw_text: return ""
     
     print(f"  > Analisi {cluster_key} ({len(raw_text)} chars)...")
     
+    # PROMPT AGGRESSIVO PER QUANTITÀ
     system_prompt = f"""
     SEI: "Il Polimate". 
     SETTORE: {info['name']}
     
-    OBIETTIVO: Elencare TUTTE le notizie valide trovate. 
-    Non riassumere. Se trovi 10 notizie, scrivine 10.
+    OBIETTIVO: Elencare IL MAGGIOR NUMERO POSSIBILE di notizie valide.
+    NON FILTRARE TROPPO. Se una notizia è recente e tecnica, INCLUDILA.
+    Voglio densità. Se ci sono 20 notizie, scrivine 20.
     
     REGOLE FORMATTAZIONE:
     1. Titoli in ITALIANO CORRETTO (Sentence case). 
-       Esempio: "Nuova scoperta sui superconduttori" (Non: Nuova Scoperta Sui Superconduttori).
+       Esempio: "Nuova scoperta sui superconduttori"
     
     2. LINK: Usa ESATTAMENTE questo formato a fine paragrafo:
        **Fonte:** [Link](URL_ORIGINALE)
     
     3. VIETATO:
-       - NON usare <hr>. Usa solo spazio vuoto.
-       - NON usare "Ecco le notizie".
+       - NON usare <hr>.
+       - NON usare frasi introduttive.
+       - NON scartare notizie solo perché sono brevi.
     
     FORMATO OUTPUT:
     ### [Titolo notizia]
-    [Analisi densa di 5-6 righe.]
+    [Analisi tecnica e sintetica.]
     
     **Fonte:** [Link](URL)
     
@@ -273,10 +279,10 @@ def analyze_cluster(cluster_key, info, raw_text):
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"DATI:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
+                {"role": "user", "content": f"INPUT MASSIVO:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
             ],
-            temperature=0.2, 
-            max_tokens=6000 
+            temperature=0.3, # Alzato leggermente per essere meno restrittivo
+            max_tokens=7000 
         )
         return completion.choices[0].message.content
     except Exception as e:
@@ -284,7 +290,7 @@ def analyze_cluster(cluster_key, info, raw_text):
         return ""
 
 # --- 4. MAIN SEQUENCER ---
-print("Avvio IL POLIMATE TITAN (Safe Mode)...")
+print("Avvio IL POLIMATE TITAN (High Volume Mode)...")
 start_time = time.time()
 italian_date = get_italian_date()
 today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -306,7 +312,7 @@ for key, info in CLUSTERS.items():
     else:
         print("  > Nessun dato grezzo.")
     
-    # PAUSA AUMENTATA A 35 SECONDI PER EVITARE RATE LIMIT
+    # Mantengo pausa alta perché stiamo inviando MOLTO testo
     print("  > Cooling down (35s)...")
     time.sleep(35)
 
@@ -316,23 +322,23 @@ if not os.path.exists("_posts"):
 
 filename = f"_posts/{today_iso}-brief.md"
 
+# RIMOSSO IL SOTTOTITOLO "Edizione Titan..."
 markdown_file = f"""---
 title: "La Rassegna del {italian_date}"
 date: {today_iso}
 layout: post
-excerpt: "Edizione Titan. Analisi strategica su 160+ fonti d'élite."
+excerpt: "Analisi strategica quotidiana."
 ---
 
 {full_report}
 """
 
-# Salva solo se c'è contenuto (fallback anti-vuoto)
 if len(full_report) > 100:
     with open(filename, "w", encoding='utf-8') as f:
         f.write(markdown_file)
     print(f"\nDossier salvato: {filename}")
 else:
-    print("\nATTENZIONE: Report vuoto, non salvato. Controllare log.")
+    print("\nATTENZIONE: Report vuoto.")
 
 duration = (time.time() - start_time) / 60
 print(f"Tempo totale: {duration:.1f} minuti.")
