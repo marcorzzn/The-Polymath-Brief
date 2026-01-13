@@ -22,7 +22,7 @@ jobs:
 
       # Installiamo Groq e DuckDuckGo invece di OpenAI/Tavily
       - name: Install Libraries
-        run: pip install -r requirements.txt
+        run: pip install groq feedparser
 
       - name: Run Generator Script
         env:
