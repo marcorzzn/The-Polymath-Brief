@@ -5,11 +5,11 @@ import feedparser
 import concurrent.futures
 from groq import Groq
 
-# --- CONFIGURAZIONE ---
+# --- CONFIGURAZIONE BILANCIATA ---
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MAX_WORKERS = 20            
-LOOKBACK_HOURS = 36         # AUMENTATO A 36 ORE (Per garantire abbondanza)
-MAX_SECTION_CONTEXT = 60000 # Aumentato per leggere più input
+LOOKBACK_HOURS = 30         # 30 Ore: Compromesso ideale freschezza/copertura
+MAX_SECTION_CONTEXT = 60000 # Massima capacità di lettura per trovare più notizie
 
 if not GROQ_API_KEY:
     print("ERRORE CRITICO: Manca la GROQ_API_KEY.")
@@ -24,10 +24,10 @@ def get_italian_date():
     now = datetime.datetime.now()
     return f"{now.day} {months[now.month]} {now.year}"
 
-# --- 1. FONTI D'ELITE ---
+# --- 1. FONTI D'ELITE (CONFIGURAZIONE UTENTE) ---
 CLUSTERS = {
     "01_AI_RESEARCH": {
-        "name": "INTELLIGENZA ARTIFICIALE",
+        "name": "MENTE SINTETICA & LABORATORI AI",
         "desc": "Breakthroughs tecnici.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=50",
@@ -44,7 +44,7 @@ CLUSTERS = {
         ]
     },
     "02_QUANTUM": {
-        "name": "FISICA DI FRONTIERA",
+        "name": "FISICA DI FRONTIERA & QUANTUM",
         "desc": "Calcolo quantistico e fisica.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=40",
@@ -58,8 +58,8 @@ CLUSTERS = {
         ]
     },
     "03_MATH_FRONTIER": {
-        "name": "MATEMATICA",
-        "desc": "Le tue fonti selezionate.",
+        "name": "MATEMATICA AVANZATA & MODELLISTICA",
+        "desc": "Lista Custom Utente.",
         "urls": [
             "https://eprint.iacr.org/rss/rss.xml",
             "https://blog.cryptographyengineering.com/feed/",
@@ -67,20 +67,17 @@ CLUSTERS = {
             "https://news.mit.edu/rss/topic/mathematics",
             "https://sinews.siam.org/rss/sn_rss.aspx",
             "https://rss.ams.org/math-in-the-media.xml",
-            "http://export.arxiv.org/api/query?search_query=cat:math.NA&sortBy=submittedDate&sortOrder=descending&max_results=20", 
-            "http://export.arxiv.org/api/query?search_query=cat:math.OC&sortBy=submittedDate&sortOrder=descending&max_results=20", 
-            "http://export.arxiv.org/api/query?search_query=cat:math.DS&sortBy=submittedDate&sortOrder=descending&max_results=15", 
-            "http://export.arxiv.org/api/query?search_query=cat:math.ST&sortBy=submittedDate&sortOrder=descending&max_results=15", 
+            "http://export.arxiv.org/api/query?search_query=cat:math.NA&sortBy=submittedDate&sortOrder=descending&max_results=20",
+            "http://export.arxiv.org/api/query?search_query=cat:math.OC&sortBy=submittedDate&sortOrder=descending&max_results=20",
+            "http://export.arxiv.org/api/query?search_query=cat:math.DS&sortBy=submittedDate&sortOrder=descending&max_results=15",
+            "http://export.arxiv.org/api/query?search_query=cat:math.ST&sortBy=submittedDate&sortOrder=descending&max_results=15",
             "https://www.quantamagazine.org/feed/",
             "https://www.santafe.edu/news/rss",
-            "http://export.arxiv.org/api/query?search_query=cat:math.OC&sortBy=submittedDate&sortOrder=descending&max_results=20",
-            "http://export.arxiv.org/api/query?search_query=cat:math.NA&sortBy=submittedDate&sortOrder=descending&max_results=20",
-            "http://export.arxiv.org/api/query?search_query=cat:math.DS&sortBy=submittedDate&sortOrder=descending&max_results=15",
             "http://export.arxiv.org/api/query?search_query=cat:cs.GT&sortBy=submittedDate&sortOrder=descending&max_results=15"
         ]
     },
     "04_BIO_SYNTHETIC": {
-        "name": "BIOLOGIA & BIOTECNOLOGIE",
+        "name": "BIOLOGIA SINTETICA & MED-TECH",
         "desc": "Genomica, CRISPR.",
         "urls": [
             "https://connect.biorxiv.org/biorxiv_xml.php?subject=synthetic_biology",
@@ -122,7 +119,7 @@ CLUSTERS = {
         ]
     },
     "07_CHIP_DESIGN": {
-        "name": "HARDWARE",
+        "name": "ARCHITETTURE HARDWARE",
         "desc": "GPU Design, HPC.",
         "urls": [
             "https://spectrum.ieee.org/feeds/topic/semiconductors/rss",
@@ -134,7 +131,7 @@ CLUSTERS = {
         ]
     },
     "08_MATERIALS": {
-        "name": "MATERIALI",
+        "name": "SCIENZA DEI MATERIALI",
         "desc": "Batterie, Chimica.",
         "urls": [
             "https://chemrxiv.org/engage/chemrxiv/rss",
@@ -221,7 +218,7 @@ CLUSTERS = {
 # --- 2. ENGINE DI RACCOLTA (STEALTH MODE) ---
 def fetch_feed(url):
     try:
-        # User Agent simulato
+        # Browser Chrome User Agent per evitare blocchi 403
         d = feedparser.parse(url, agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         items = []
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -234,7 +231,7 @@ def fetch_feed(url):
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
             
-            # FILTRO PERMISSIVO (Include anche notizie senza data certa)
+            # FILTRO 30H: Compromesso per coprire fusi orari
             if not pub_date or pub_date > cutoff:
                 content = "No content"
                 if hasattr(entry, 'summary'): content = entry.summary
@@ -257,32 +254,38 @@ def get_cluster_data(urls):
             data.extend(res)
     return data
 
-# --- 3. ANALISTA AI (BILANCIAMENTO QUANTITÀ/QUALITÀ) ---
+# --- 3. ANALISTA AI (PROMPT CORRETTO PER LINK E STILE) ---
 def analyze_cluster(cluster_key, info, raw_text):
     if not raw_text: return ""
     
     print(f"  > Analisi {cluster_key} ({len(raw_text)} chars)...")
     
-    # PROMPT OTTIMIZZATO: Forza l'output se c'è materiale
     system_prompt = f"""
     SEI: "Il Polimate". SETTORE: {info['name']}
     
-    OBIETTIVO: Selezionare notizie di ALTO VALORE STRATEGICO o TECNICO.
+    OBIETTIVO: Selezionare notizie di ALTO VALORE.
+    Non essere troppo restrittivo: se ci sono aggiornamenti tecnici validi nelle ultime 30 ore, RIPORTALI.
+    Voglio densità: idealmente 3-5 notizie per settore, se i dati lo permettono.
     
-    ISTRUZIONI CRITICHE (QUANTITÀ):
-    - NON ESSERE TROPPO SELETTIVO. Il lettore vuole leggere notizie, non un foglio bianco.
-    - Se ci sono notizie tecniche valide, RIPORTALE TUTTE (Idealmente 4-5 per settore).
-    - Priorità ai "Game Changers", ma accetta anche "Avanzamenti Solidi".
+    REGOLE DI STILE OBBLIGATORIE:
+    1. TITOLI: In Italiano, stile "Sentence case" (Solo la prima lettera maiuscola, il resto minuscolo, salvo nomi propri).
+       - Esempio CORRETTO: "Nuova scoperta sui semiconduttori"
+       - Esempio SBAGLIATO: "Nuova Scoperta Sui Semiconduttori" (Titolo Inglese)
     
-    STILE (ECCELLENZA):
-    - Titoli: Italiano, Sentence case.
-    - Analisi: Spiega l'impatto strategico in 5 righe.
+    2. LINK (CRUCIALE): 
+       - Alla fine del paragrafo, vai a capo.
+       - Scrivi ESATTAMENTE: **Fonte:** [Vedi Fonte](LINK_ORIGINALE)
+       - Il link DEVE essere in formato Markdown cliccabile.
     
-    FORMATO OBBLIGATORIO:
-    ### [Titolo in Italiano]
-    [Analisi densa.]
+    3. CONTENUTO:
+       - Analisi professionale, colta, densa.
+       - Niente sottotitoli o introduzioni.
     
-    **Fonte:** [Link](URL)
+    FORMATO OUTPUT:
+    ### [Titolo in italiano corretto]
+    [Testo dell'analisi...]
+    
+    **Fonte:** [Vedi Fonte](URL)
     
     (Riga vuota)
     """
@@ -293,9 +296,9 @@ def analyze_cluster(cluster_key, info, raw_text):
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"DATI DISPONIBILI (ANALIZZALI TUTTI):\n{raw_text[:MAX_SECTION_CONTEXT]}"}
+                {"role": "user", "content": f"DATI DA ANALIZZARE:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
             ],
-            temperature=0.3, 
+            temperature=0.3, # Leggermente creativo per l'analisi, ma rigido sulla struttura
             max_tokens=7000 
         )
         return completion.choices[0].message.content
@@ -304,7 +307,7 @@ def analyze_cluster(cluster_key, info, raw_text):
         return ""
 
 # --- 4. MAIN SEQUENCER ---
-print("Avvio IL POLIMATE (Protocollo Balanced Titan)...")
+print("Avvio IL POLIMATE (Fixed Links & Style)...")
 start_time = time.time()
 italian_date = get_italian_date()
 today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -319,15 +322,15 @@ for key, info in CLUSTERS.items():
         raw_text = "\n---\n".join(raw_data)
         analysis = analyze_cluster(key, info, raw_text)
         
-        # Abbassato il limite di caratteri per accettare anche output più sintetici pur di avere qualcosa
-        if analysis and len(analysis) > 30:
+        # Abbassato il limite caratteri per accettare anche analisi più sintetiche
+        if analysis and len(analysis) > 20:
             full_report += f"\n\n## {info['name']}\n\n{analysis}\n"
         else:
             print("  > Contenuto scartato o insufficiente.")
     else:
         print("  > Nessun dato grezzo rilevato.")
     
-    # Pausa per evitare blocchi
+    # Pausa 25s per evitare blocchi API
     time.sleep(25)
 
 # SALVATAGGIO
