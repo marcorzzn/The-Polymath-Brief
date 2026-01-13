@@ -3,17 +3,28 @@ description: Intelligence Strategica.
 author: marcorzzn
 email: you@example.com
 
-# URL CONFIGURATION
-# Se la tua repo si chiama "The-Polymath-Brief", lascia così:
-baseurl: "/The-Polymath-Brief" 
-# Se l'hai rinominata "marcorzzn.github.io", metti: baseurl: ""
+# --- CONFIGURAZIONE URL (FONDAMENTALE) ---
+# Impostiamo la cartella esatta dove si trova il sito
+baseurl: "/ilpolimate"
 
+# Il dominio principale
 url: "https://marcorzzn.github.io"
 
-# BUILD SETTINGS
-markdown: kramdown
-# theme: jekyll-theme-minimal  <-- COMMENTATO PER EVITARE CONFLITTI
+# --- IMPOSTAZIONI TECNICHE ---
+# Generiamo link semplici con estensione .html per evitare errori 404
 permalink: /:year/:month/:day/:title.html
-future: true
+
+markdown: kramdown
+
+# Disattiviamo il tema di default affinché usi solo i tuoi layout personalizzati
+# theme: jekyll-theme-minimal 
+
 plugins:
   - jekyll-feed
+
+# Escludiamo i file di sistema dalla pubblicazione
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - daily_brief.py
+  - README.md
