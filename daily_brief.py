@@ -27,7 +27,7 @@ def get_italian_date():
 # --- 1. FONTI D'ELITE (IL RADAR) ---
 CLUSTERS = {
     "01_AI_RESEARCH": {
-        "name": "MENTE SINTETICA & LABORATORI AI",
+        "name": "INTELLIGENZA ARTIFICIALE",
         "desc": "Breakthroughs tecnici prima che diventino prodotti.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=50",
@@ -44,7 +44,7 @@ CLUSTERS = {
         ]
     },
     "02_QUANTUM": {
-        "name": "FISICA DI FRONTIERA & QUANTUM",
+        "name": "FISICA DI FRONTIERA",
         "desc": "La scienza che renderà obsoleta l'informatica attuale.",
         "urls": [
             "http://export.arxiv.org/api/query?search_query=cat:quant-ph&sortBy=submittedDate&sortOrder=descending&max_results=30",
@@ -63,14 +63,28 @@ CLUSTERS = {
         "urls": [
             "https://eprint.iacr.org/rss/rss.xml", 
             "https://blog.cryptographyengineering.com/feed/",
-            "https://schneier.com/blog/atom.xml",
-            "https://blog.ethereum.org/feed.xml", 
             "https://research.chain.link/feed.xml",
             "https://news.mit.edu/rss/topic/mathematics"
+            "https://sinews.siam.org/rss/sn_rss.aspx", 
+            "https://rss.ams.org/math-in-the-media.xml", 
+            "http://export.arxiv.org/api/query?search_query=cat:math.NA&sortBy=submittedDate&sortOrder=descending&max_results=20", # Numerical Analysis (Simulazioni)
+            "http://export.arxiv.org/api/query?search_query=cat:math.OC&sortBy=submittedDate&sortOrder=descending&max_results=20", # Optimization & Control (Il motore dell'AI)
+            "http://export.arxiv.org/api/query?search_query=cat:math.DS&sortBy=submittedDate&sortOrder=descending&max_results=15", # Dynamical Systems (Caos, Clima)
+            "http://export.arxiv.org/api/query?search_query=cat:math.ST&sortBy=submittedDate&sortOrder=descending&max_results=15", # Statistics Theory
+            "https://www.quantamagazine.org/feed/", # Il miglior giornalismo matematico al mondo. Visione pura.
+            "https://www.santafe.edu/news/rss", # Santa Fe Institute: Il tempio della "Complexity Science" (Caos, Mercati, Biologia).
+            # Optimization & Control: Il "cervello" dietro AI, Logistica globale e Finanza.
+            "http://export.arxiv.org/api/query?search_query=cat:math.OC&sortBy=submittedDate&sortOrder=descending&max_results=20",
+            # Numerical Analysis: La matematica delle simulazioni (Meteo, Aerodinamica, Crash test).
+            "http://export.arxiv.org/api/query?search_query=cat:math.NA&sortBy=submittedDate&sortOrder=descending&max_results=20",
+            # Dynamical Systems: Teoria del Caos e stabilità dei sistemi.
+            "http://export.arxiv.org/api/query?search_query=cat:math.DS&sortBy=submittedDate&sortOrder=descending&max_results=15",
+            # Game Theory: Strategia decisionale, Aste, Crypto-economics.
+            "http://export.arxiv.org/api/query?search_query=cat:cs.GT&sortBy=submittedDate&sortOrder=descending&max_results=15",
         ]
     },
     "04_BIO_SYNTHETIC": {
-        "name": "BIOLOGIA SINTETICA & MED-TECH",
+        "name": "BIOLOGIA & MED-TECH",
         "desc": "Riscrivere il codice della vita.",
         "urls": [
             "https://connect.biorxiv.org/biorxiv_xml.php?subject=synthetic_biology",
@@ -124,7 +138,7 @@ CLUSTERS = {
         ]
     },
     "08_MATERIALS": {
-        "name": "SCIENZA DEI MATERIALI",
+        "name": "MATERIALI",
         "desc": "La fisica che abilita le nuove tecnologie.",
         "urls": [
             "https://chemrxiv.org/engage/chemrxiv/rss",
