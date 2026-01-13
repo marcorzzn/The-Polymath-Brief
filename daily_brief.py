@@ -364,7 +364,7 @@ start_time = time.time()
 italian_date = get_italian_date()
 today_iso = datetime.datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y-%m-%d")
 
-full_report = ""
+report_parts = []
 total_news = 0
 stats = {}
 
@@ -396,7 +396,7 @@ for key, info in CLUSTERS.items():
         news_count = analysis.count("###")
         total_news += news_count
         stats[key] = news_count
-        full_report += f"\n\n## {info['name']}\n\n{analysis}\n"
+        report_parts.append(f"\n\n## {info['name']}\n\n{analysis}\n")
         print(f"  ✅ Sezione completata: {news_count} notizie")
     else:
         print(f"  ❌ Analisi fallita o vuota")
@@ -421,7 +421,7 @@ if not os.path.exists("_posts"):
 filename = f"_posts/{today_iso}-brief.md"
 
 excerpt = f"Panoramica giornaliera su AI, quantum computing, cybersecurity, semiconduttori, biotech, difesa ed energia."
-
+full_report = "".join(report_parts)
 markdown_file = f"""---
 title: "La rassegna del {italian_date}"
 date: {today_iso}
