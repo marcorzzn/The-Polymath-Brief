@@ -70,6 +70,68 @@
         body.dark-mode .floating-controls { background: rgba(30,30,30,0.8); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
         body.dark-mode .ctrl-btn { background: #222; border-color: #444; color: #fff; }
         body.dark-mode .ctrl-btn:hover { background: #fff; color: #000; }
+        
+        /* MASTHEAD STILE */
+        .masthead {
+            text-align: center;
+            border-bottom: 4px double #000;
+            padding-bottom: 30px;
+            margin-bottom: 50px;
+            margin-top: 20px;
+        }
+        .masthead-top {
+            font-family: 'Inter', sans-serif; font-size: 0.75rem; letter-spacing: 2px;
+            text-transform: uppercase; color: #555; margin-bottom: 10px;
+        }
+        .masthead-title {
+            font-family: 'Playfair Display', serif; font-size: 5rem; font-weight: 900;
+            letter-spacing: -2px; margin: 0; line-height: 0.9;
+        }
+        .masthead-sub {
+            font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.4rem;
+            color: #444; margin-top: 10px;
+        }
+        
+        /* ARTICOLO IN EVIDENZA */
+        .feature-title {
+            font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 700;
+            line-height: 1.1; color: #000; text-decoration: none; display: block; margin-bottom: 15px;
+        }
+        .read-btn {
+            display: inline-block; background: #000; color: #fff; padding: 10px 20px;
+            font-weight: 600; text-decoration: none; border-radius: 4px; margin-top: 10px;
+        }
+        
+        /* ARCHIVIO */
+        .archive-title {
+            text-transform: uppercase; letter-spacing: 1px; color: #666;
+            font-family: 'Inter', sans-serif; font-size: 1rem;
+        }
+        
+        /* SCROLLING SUMMARY BAR */
+        .scrolling-summary {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 8px 15px;
+            background: #f8f9fa;
+            margin: 15px 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .scrolling-summary marquee {
+            display: block;
+        }
+        
+        /* DARK MODE OVERRIDES */
+        body.dark-mode .masthead { border-bottom-color: #fff; }
+        body.dark-mode .masthead-title, body.dark-mode .feature-title { color: #fff; }
+        body.dark-mode .read-btn { background: #fff; color: #000; }
+        body.dark-mode .scrolling-summary {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
