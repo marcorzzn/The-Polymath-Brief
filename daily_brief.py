@@ -9,9 +9,9 @@ import pytz
 
 # ================== CONFIGURAZIONE ==================
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-MAX_WORKERS = 5      # RIDOTTO A 5 per massima stabilità (evita blocchi cluster)
-LOOKBACK_HOURS = 24  # 24 ore per la rassegna quotidiana
-MAX_SECTION_CONTEXT = 40000
+MAX_WORKERS = 3  # Ridotto per maggiore stabilità
+LOOKBACK_HOURS = 24
+MAX_SECTION_CONTEXT = 35000
 
 if not GROQ_API_KEY:
     print("⚠️ ATTENZIONE: GROQ_API_KEY non trovata.")
@@ -30,7 +30,6 @@ def get_italian_date():
     return f"{now.day} {mesi[now.month]} {now.year}"
 
 # ================== CLUSTER COMPLETI ==================
-# ================= FONTI =================
 CLUSTERS = {
     "01_AI_RESEARCH": {
         "name": "INTELLIGENZA ARTIFICIALE",
@@ -238,7 +237,6 @@ def fetch_feed(url):
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
             
-            # Bocca Larga: Prendi tutto se data recente o mancante
             if not pub_date or pub_date > cutoff:
                 content = "No content"
                 if hasattr(entry, 'summary'): content = entry.summary
@@ -255,12 +253,12 @@ def fetch_feed(url):
                 link = entry.link
                 items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
         return items
-    except:
+    except Exception as e:
+        print(f"  ⚠️ Errore nel fetch di {url[:50]}...: {e}")
         return []
 
 def get_cluster_data(urls):
     data = []
-    # Worker ridotti a 5 per evitare blocchi
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         results = executor.map(fetch_feed, urls)
         for res in results:
@@ -268,39 +266,59 @@ def get_cluster_data(urls):
     return data
 
 # ================== ANALISTA AI ==================
-def analyze_cluster(cluster_key, info, raw_text, attempt=1):
-    if not raw_text: return ""
+def analyze_cluster(cluster_key, info, raw_text):
+    if not raw_text: 
+        print(f"  ⚠️ Nessun dato per {info['name']}")
+        return ""
     
     print(f"  > Analisi {info['name']}...")
     
-    # PROMPT OTTIMIZZATO PER LINK CLICCABILI
-    system_prompt = f"""Sei Il Polimate. Settore: {info['name']}.
-    
-    REGOLE DI FORMATTAZIONE (STRETTE):
-    1. Scrivi 2-4 notizie rilevanti.
-    2. Titoli in Italiano (Sentence case).
-    3. LINK CLICCABILI: Devi usare ESATTAMENTE questo formato:
-       **Fonte:** [Vedi Fonte](URL_ORIGINALE)
-       
-       (NON scrivere mai l'URL nudo. Deve essere tra parentesi tonde preceduto da parentesi quadre).
-    
-    4. Nessuna linea orizzontale (<hr>).
-    
-    Output:
-    ### [Titolo Italiano]
-    [Riassunto...]
-    
-    **Fonte:** [Vedi Fonte](URL)
-    """
+    # PROMPT MIGLIORATO: più notizie + link cliccabili
+    system_prompt = f"""Sei un analista esperto del settore {info['name']}.
+
+COMPITO:
+1. Identifica le 4-6 notizie PIÙ RILEVANTI dalle fonti fornite
+2. Per ogni notizia scrivi:
+   - Titolo chiaro in italiano (sentence case)
+   - Riassunto di 2-4 frasi che spiega il significato e l'impatto
+   - Link alla fonte originale in formato cliccabile
+
+FORMATO OBBLIGATORIO:
+### [Titolo della notizia]
+[Riassunto in 2-4 frasi...]
+
+**Fonte:** [Vedi Fonte](URL_COMPLETO)
+
+REGOLE CRITICHE:
+- Il link DEVE essere in formato Markdown: [Vedi Fonte](URL)
+- NON scrivere mai l'URL nudo (senza parentesi)
+- NON usare <hr> o linee di separazione
+- Titoli in italiano, chiari e informativi
+- Almeno 4 notizie se i dati lo permettono
+
+ESEMPIO CORRETTO:
+### Nuovo algoritmo quantistico supera i classici
+Ricercatori del MIT hanno sviluppato un algoritmo che...
+
+**Fonte:** [Vedi Fonte](https://arxiv.org/abs/2601.12345)
+"""
     
     try:
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": f"{system_prompt}\n\nDATI:\n{raw_text[:MAX_SECTION_CONTEXT]}"}],
-            temperature=0.3, max_tokens=5000
+            temperature=0.3, 
+            max_tokens=6000  # Aumentato per più notizie
         )
-        return completion.choices[0].message.content
+        result = completion.choices[0].message.content
+        
+        # Verifica che ci siano notizie
+        if "###" not in result:
+            print(f"  ⚠️ Nessuna notizia generata per {info['name']}")
+            return ""
+            
+        return result
     except Exception as e:
         print(f"  ❌ Errore AI su {cluster_key}: {e}")
         return ""
@@ -315,18 +333,26 @@ except:
     today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
 
 report_parts = []
-all_titles = [] # Per la scritta scorrevole
+all_titles = []
+clusters_with_content = 0
 
+# PROCESSA TUTTI I CLUSTER
 for key, info in CLUSTERS.items():
-    print(f"\n--- {info['name']} ---")
+    print(f"\n{'='*60}")
+    print(f"CLUSTER: {info['name']}")
+    print(f"{'='*60}")
+    
     try:
         raw_data = get_cluster_data(info['urls'])
+        
         if raw_data:
+            print(f"  ✓ Raccolti {len(raw_data)} articoli")
             raw_text = "\n---\n".join(raw_data)
             analysis = analyze_cluster(key, info, raw_text)
             
             if analysis and "###" in analysis:
-                report_parts.append(f"\n\n## {info['name']}\n\n{analysis}\n")
+                report_parts.append(f"\n## {info['name']}\n\n{analysis}\n")
+                clusters_with_content += 1
                 
                 # Estrazione titoli per marquee
                 lines = analysis.split('\n')
@@ -334,20 +360,31 @@ for key, info in CLUSTERS.items():
                     if line.strip().startswith("### "):
                         clean_title = line.replace("### ", "").strip()
                         all_titles.append(f"{info['name']}: {clean_title}")
+                        
+                print(f"  ✓ Analisi completata con successo")
+            else:
+                print(f"  ⚠️ Nessuna notizia rilevante trovata")
         else:
-            print("  [Vuoto]")
+            print(f"  ⚠️ Nessun dato recente trovato")
+            
     except Exception as e:
-        print(f"  ❌ Errore Critico nel cluster {key}: {e}")
-        # Continua col prossimo cluster invece di fermarsi
+        print(f"  ❌ Errore nel cluster {key}: {e}")
         continue
         
-    time.sleep(3) # Pausa di sicurezza
+    time.sleep(2)  # Pausa tra cluster
 
-# Creazione stringa scorrevole
-marquee_text = " • ".join(all_titles[:15]) + "..." # Prende i primi 15 titoli
+# REPORT FINALE
+print(f"\n{'='*60}")
+print(f"REPORT FINALE: {clusters_with_content}/{len(CLUSTERS)} cluster con contenuti")
+print(f"{'='*60}")
+
+# Creazione stringa scorrevole (primi 20 titoli)
+marquee_text = " • ".join(all_titles[:20]) if all_titles else "Nessuna notizia rilevante oggi"
 
 # SALVATAGGIO
-if not os.path.exists("_posts"): os.makedirs("_posts")
+if not os.path.exists("_posts"): 
+    os.makedirs("_posts")
+    
 filename = f"_posts/{today_iso}-brief.md"
 full_report = "".join(report_parts)
 
@@ -365,3 +402,5 @@ with open(filename, "w", encoding='utf-8') as f:
     f.write(markdown_file)
 
 print(f"\n✅ SALVATO: {filename}")
+print(f"📊 Cluster elaborati: {clusters_with_content}/{len(CLUSTERS)}")
+print(f"📰 Titoli nel marquee: {len(all_titles)}")
