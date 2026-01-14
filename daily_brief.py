@@ -8,11 +8,11 @@ from groq import Groq
 # --- CONFIGURAZIONE ---
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MAX_WORKERS = 5
-LOOKBACK_HOURS = 28  # Finestra richiesta dall'utente
-MAX_SECTION_CONTEXT = 15000 
+LOOKBACK_HOURS = 28  # Finestra temporale richiesta
+MAX_SECTION_CONTEXT = 12000  # Ridotto leggermente per evitare errori di token limit
 
 if not GROQ_API_KEY:
-    print("ERRORE CRITICO: Manca GROQ_API_KEY. Impostala come variabile d'ambiente.")
+    print("ERRORE CRITICO: Manca GROQ_API_KEY.")
     exit(1)
 
 # ================= FONTI (CLUSTERS) =================
@@ -158,33 +158,54 @@ def fetch_feed(url):
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 pub_date = datetime.datetime(*entry.updated_parsed[:6], tzinfo=datetime.timezone.utc)
             
-            # Se non c'è data, assumiamo sia recente per sicurezza
             if not pub_date or pub_date > cutoff:
                 content = "No content"
                 if hasattr(entry, 'summary'): content = entry.summary
                 elif hasattr(entry, 'content'): content = entry.content[0].value
                 elif hasattr(entry, 'description'): content = entry.description
                 
-                # Pulizia base HTML
                 content = content.replace("<p>", "").replace("</p>", "").replace("<div>", "").strip()[:2000]
                 source = d.feed.get('title', 'Unknown Source')
                 link = entry.link
                 items.append(f"SRC: {source}\nLINK: {link}\nTITLE: {entry.title}\nTXT: {content}\n")
         return items
     except Exception as e:
-        # Silenzioso su errore feed singolo, per non bloccare tutto
         return []
 
 def get_cluster_data(urls):
     data = []
-    # Ridotto i workers per stabilità
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         results = executor.map(fetch_feed, urls)
         for res in results:
             data.extend(res)
     return data
 
-# --- 3. AGENTE ANALISTA (PROMPT RIGIDO V4) ---
+# --- 3. AGENTE ANALISTA (CON RETRY AUTOMATICO) ---
+def analyze_with_retry(client, model, messages, max_retries=3):
+    """Tenta di chiamare l'AI. Se fallisce per Rate Limit, aspetta e riprova."""
+    for attempt in range(max_retries):
+        try:
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=2500
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            error_msg = str(e)
+            print(f"    [!] Errore tentativo {attempt+1}/{max_retries}: {error_msg}")
+            
+            # Se è un errore di Rate Limit (429) o sovraccarico, aspettiamo
+            if "429" in error_msg or "rate limit" in error_msg.lower():
+                wait_time = 60 # Aspetta 60 secondi
+                print(f"    >>> Rate Limit colpito. Pausa di {wait_time} secondi prima di riprovare...")
+                time.sleep(wait_time)
+            else:
+                # Se è un altro errore (es. chiave sbagliata), inutile riprovare
+                return None
+    return None
+
 def analyze_cluster(cluster_key, info, raw_text):
     if not raw_text: 
         return "Nessuna notizia rilevante trovata nelle ultime 28 ore."
@@ -220,24 +241,25 @@ Fonte: [https://nvidianews.com](https://nvidianews.com)
 Fonte: [https://cve.mitre.org](https://cve.mitre.org)
 """
     
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"DATI INPUT:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
-            ],
-            temperature=0.1, # Minima creatività per rispettare il formato
-            max_tokens=2500
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        print(f"Error AI {cluster_key}: {e}")
-        return "Errore nell'analisi AI per questo settore."
+    client = Groq(api_key=GROQ_API_KEY)
+    
+    # Usiamo la funzione di retry invece della chiamata diretta
+    response = analyze_with_retry(
+        client, 
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"DATI INPUT:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
+        ]
+    )
+    
+    if response:
+        return response
+    else:
+        return "Errore persistente nell'analisi AI (Rate Limit o API Down)."
 
 # --- 4. SEQUENCER ---
-print("Avvio MOTORE EPOCHALE...")
+print("Avvio MOTORE EPOCHALE (Versione Bulletproof)...")
 today = datetime.datetime.now().strftime("%Y-%m-%d")
 
 today_date = datetime.datetime.now()
@@ -250,14 +272,11 @@ month_italian = {
 }.get(month_name, month_name)
 display_date = f"{today_date.day} {month_italian} {today_date.year}"
 
+# MODIFICA: Rimosso titolo H1 e intro dal corpo del messaggio
 full_report = f"""---
 title: "La rassegna del {display_date}"
 date: {today}
 layout: post
----
-
-> Report di intelligence sui segnali rilevanti delle ultime 28 ore.
-
 ---
 """
 
@@ -269,10 +288,8 @@ for key, info in CLUSTERS.items():
     
     analysis = ""
     
-    # Logica modificata: Processa sempre, se vuoto mette il testo di fallback
     if raw_data:
         print(f"  > Trovati {len(raw_data)} articoli raw.")
-        # Limitiamo a 40 articoli per non confondere l'AI e non sforare i token
         limited_raw_data = raw_data[:40]
         raw_text = "\n---\n".join(limited_raw_data)
         analysis = analyze_cluster(key, info, raw_text)
@@ -280,16 +297,15 @@ for key, info in CLUSTERS.items():
         print("  > 0 articoli trovati (Feed vuoti o vecchi).")
         analysis = "Nessuna notizia rilevante trovata nelle ultime 28 ore in questo settore."
 
-    # Se l'AI ha fallito o ritornato stringa vuota, metti fallback
     if not analysis:
-        analysis = "Nessuna notizia rilevante trovata nelle ultime 28 ore in questo settore."
+        analysis = "Nessuna notizia rilevante trovata."
 
-    # Scrittura nel report: Il titolo del settore c'è SEMPRE
+    # Scrittura nel report
     full_report += f"\n\n## {info['name']}\n\n{analysis}\n\n"
     
-    # Pausa per evitare rate limit di Groq (fondamentale)
-    print("  > Cooling down (10s)...")
-    time.sleep(10)
+    # Pausa di sicurezza aumentata tra i cluster
+    print("  > Cooling down (5s)...")
+    time.sleep(5)
 
 # --- 5. SALVATAGGIO ---
 if not os.path.exists("_posts"): os.makedirs("_posts")
