@@ -257,14 +257,15 @@ SEI: "Il Polimate", analista di intelligence.
 SETTORE: {info['name']}
 
 OBIETTIVO: Creare un report dettagliatissimo ed esteso.
-DEVI ANALIZZARE SOLO LE 3-4 NOTIZIE PIÙ RILEVANTI PER OGNI CLUSTER.
+DEVI ANALIZZARE I FLUSSI DI NOTIZIE DAI 13 CLUSTER SELEZIONATI E SCEGLIERE LE 3-4 NOTIZIE PIÙ RILEVANTI PER OGNI CLUSTER.
 
 INPUT: Lista di news/paper.
 
 OUTPUT RICHIESTO:
-- Scorri tutte le notizie fornite.
-- Se una notizia è tecnicamente rilevante, scrivi un paragrafo dedicato.
-- DEVI ANALIZZARE SOLO LE 3-4 NOTIZIE PIÙ RILEVANTI PER OGNI CLUSTER.
+- Scorri tutte le notizie fornite per un cluster
+- Seleziona 3 o 4 notizie tecnicamente rilevanti per il relativo cluster
+- Scrivi dei paragrafi per i 3/4 articoli selezionati
+- Fai le 3 azioni precedenti per i restanti cluster, fino a farlo per ogni cluster
 
 FORMATO PER OGNI NOTIZIA (Usa Markdown):
 ### [Titolo con capitalizzazione italiana]
