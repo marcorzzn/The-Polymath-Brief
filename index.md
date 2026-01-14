@@ -5,7 +5,7 @@ title: Home
 
 <div style="text-align: center; margin-bottom: 40px;">
   <h1 style="font-family: 'Playfair Display', serif; font-size: 3em; margin-bottom: 5px;">IL POLIMATE</h1>
-  <p style="font-size: 1.1em; color: #666; font-style: italic;">Intelligence Strategica Quotidiana</p>
+  <p style="font-size: 1.1em; color: #666; font-style: italic;">Fondato nel 2026 - Intelligence Strategica Quotidiana</p>
 </div>
 
 ---
