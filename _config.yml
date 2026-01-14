@@ -1,38 +1,30 @@
-name: Daily Polymath Brief (Free Tier)
+title: IL POLIMATE
+description: Intelligence Strategica.
+author: marcorzzn
+email: you@example.com
 
-on:
-  schedule:
-    - cron: '0 7 * * *'
-  workflow_dispatch:
+# --- CONFIGURAZIONE URL (FONDAMENTALE) ---
+# Impostiamo la cartella esatta dove si trova il sito
+baseurl: "/ilpolimate"
 
-permissions:
-  contents: write
+# Il dominio principale
+url: "https://marcorzzn.github.io"
 
-jobs:
-  build_and_publish:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# --- IMPOSTAZIONI TECNICHE ---
+# Generiamo link semplici con estensione .html per evitare errori 404
+permalink: /:year/:month/:day/:title.html
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+markdown: kramdown
 
-      # Installiamo Groq e DuckDuckGo invece di OpenAI/Tavily
-      - name: Install Libraries
-        run: pip install groq feedparser
+# Disattiviamo il tema di default affinché usi solo i tuoi layout personalizzati
+# theme: jekyll-theme-minimal 
 
-      - name: Run Generator Script
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python daily_brief.py
+plugins:
+  - jekyll-feed
 
-      - name: Commit and Push Report
-        run: |
-          git config --global user.name 'Polymath Bot'
-          git config --global user.email 'bot@users.noreply.github.com'
-          git add _posts/
-          git commit -m "New Brief Generated" || echo "Nessun cambiamento"
-          git push
+# Escludiamo i file di sistema dalla pubblicazione
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - daily_brief.py
+  - README.md
