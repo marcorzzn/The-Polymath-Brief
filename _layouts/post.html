@@ -5,11 +5,11 @@ layout: default
 <div style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
     
     <div style="text-align: center; margin-bottom: 50px; border-bottom: 1px solid #e0e0e0; padding-bottom: 30px;">
-         <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 15px;">
-            Dossier Strategico &bull; {{ page.date | date: "%d %B %Y" }}
-         </div>
+         {% assign months = "gennaio,febbraio,marzo,aprile,maggio,giugno,luglio,agosto,settembre,ottobre,novembre,dicembre" | split: "," %}
+         {% assign m = page.date | date: "%-m" | minus: 1 %}
+         
          <h1 style="font-family: 'Playfair Display', serif; font-size: 3.5rem; line-height: 1.1; margin: 0; font-weight: 900; color: inherit;">
-            {{ page.title }}
+            La rassegna del {{ page.date | date: "%-d" }} {{ months[m] }} {{ page.date | date: "%Y" }}
          </h1>
     </div>
 
@@ -56,8 +56,8 @@ layout: default
             article ul { padding-left: 20px; margin-bottom: 30px; }
             article li { margin-bottom: 10px; }
             
-            /* Rimuove HR se presente */
-            article hr { display: none; }
+            /* Rimuove HR */
+            article hr { display: none !important; }
         </style>
 
         {{ content }}
