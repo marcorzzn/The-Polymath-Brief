@@ -9,13 +9,13 @@ from groq import Groq
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MAX_WORKERS = 5
 LOOKBACK_HOURS = 28  # Finestra ampia per non perdere nulla
-MAX_SECTION_CONTEXT = 15000  # Ridotto per gestire meglio il contesto
+MAX_SECTION_CONTEXT = 15000  # Contesto massimo per l'AI
 
 if not GROQ_API_KEY:
-    print("ERRORE: Manca GROQ_API_KEY.")
+    print("ERRORE: Manca GROQ_API_KEY. Impostala come variabile d'ambiente.")
     exit(1)
 
-# ================= FONTI =================
+# ================= FONTI (CLUSTERS) =================
 CLUSTERS = {
     "01_AI_RESEARCH": {
         "name": "INTELLIGENZA ARTIFICIALE",
@@ -245,39 +245,37 @@ def get_cluster_data(urls):
             data.extend(res)
     return data
 
-# --- 3. AGENTE ANALISTA (PROMPT MASSIVO) ---
+# --- 3. AGENTE ANALISTA (PROMPT DEFINITIVO) ---
 def analyze_cluster(cluster_key, info, raw_text):
     if not raw_text: return ""
     
     print(f"  > Analisi {cluster_key} ({len(raw_text)} chars)...")
     
-    # Prompt modificato per generare TANTI contenuti con link cliccabili
+    # PROMPT OTTIMIZZATO PER IL FORMATO RICHIESTO
     system_prompt = f"""
-SEI: "Il Polimate", analista di intelligence.
+SEI: Un analista senior di intelligence tecnologica.
 SETTORE: {info['name']}
 
-OBIETTIVO: Creare un report dettagliatissimo ed esteso.
-DEVI ANALIZZARE I FLUSSI DI NOTIZIE DAI 13 CLUSTER SELEZIONATI E SCEGLIERE LE 3-4 NOTIZIE PIÙ RILEVANTI PER OGNI CLUSTER.
+OBIETTIVO: Selezionare ESATTAMENTE 4 notizie (se disponibili) e riassumerle seguendo rigorosamente il layout richiesto.
 
-INPUT: Lista di news/paper.
+LAYOUT OBBLIGATORIO (Segui questo schema visivo):
 
-OUTPUT RICHIESTO:
-- Scorri tutte le notizie fornite per un cluster
-- Seleziona 3 o 4 notizie tecnicamente rilevanti per il relativo cluster
-- Scrivi dei paragrafi per i 3/4 articoli selezionati
-- Fai le 3 azioni precedenti per i restanti cluster, fino a farlo per ogni cluster
+**[Titolo della notizia in Italiano]**
+[Testo del paragrafo di 3-4 righe. Descrizione tecnica e densa.]
+Fonte: [Link originale]
 
-FORMATO PER OGNI NOTIZIA (Usa Markdown):
-### [Titolo con capitalizzazione italiana]
-[Analisi tecnica dettagliata di 4-5 righe. Spiega il 'cosa', il 'come' e il 'perché'. Usa termini tecnici.] [con capitalizzazione italiana]
-[inserire riga di spazio]
-**Fonte:** [Inserisci il LINK originale fornito] (DEVE ESSERE CLICCABILE COME MARKDOWN)
+[Riga vuota per separare dalla prossima notizia]
 
-STILE:
-- Densità informativa massima.
-- Italiano professionale.
-- NESSUNA INTRODUZIONE, NESSUNA CONCLUSIONE. Solo la lista delle analisi.
-- NON UTILIZZARE <hr> O LINEE ORIZZONTALI
+ESEMPIO CORRETTO:
+**Nuovo record di efficienza per le celle solari**
+I ricercatori hanno stabilito un nuovo benchmark raggiungendo il 24% di efficienza con una stabilità operativa raddoppiata. La tecnica riduce i difetti cristallini.
+Fonte: https://www.nrel.gov/news/rss.xml
+
+REGOLE CRITICHE:
+1. Il Titolo DEVE essere in grassetto (uso di doppi asterischi).
+2. La parola "Fonte:" DEVE essere tassativamente su una NUOVA RIGA rispetto al testo. Non attaccarla alla fine del paragrafo.
+3. Non lasciare righe vuote tra il testo e la fonte.
+4. Lascia una riga vuota SOLO dopo aver scritto la fonte, prima della notizia successiva.
 """
     
     try:
@@ -286,10 +284,10 @@ STILE:
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"INPUT DATI:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
+                {"role": "user", "content": f"DATI INPUT:\n{raw_text[:MAX_SECTION_CONTEXT]}"}
             ],
-            temperature=0.2,
-            max_tokens=6000 # Massimo spazio per scrivere tantissimo
+            temperature=0.2, # Bassa temperatura per precisione
+            max_tokens=2500
         )
         return completion.choices[0].message.content
     except Exception as e:
@@ -300,33 +298,25 @@ STILE:
 print("Avvio MOTORE EPOCHALE...")
 today = datetime.datetime.now().strftime("%Y-%m-%d")
 
-# Data in italiano
+# Data in italiano per l'header
 today_date = datetime.datetime.now()
 month_name = today_date.strftime("%B")
 month_italian = {
-    "January": "gennaio",
-    "February": "febbraio",
-    "March": "marzo",
-    "April": "aprile",
-    "May": "maggio",
-    "June": "giugno",
-    "July": "luglio",
-    "August": "agosto",
-    "September": "settembre",
-    "October": "ottobre",
-    "November": "novembre",
-    "December": "dicembre"
+    "January": "gennaio", "February": "febbraio", "March": "marzo",
+    "April": "aprile", "May": "maggio", "June": "giugno",
+    "July": "luglio", "August": "agosto", "September": "settembre",
+    "October": "ottobre", "November": "novembre", "December": "dicembre"
 }.get(month_name, month_name)
 display_date = f"{today_date.day} {month_italian} {today_date.year}"
 
+# Header modificato: RIMOSSO il campo excerpt
 full_report = f"""---
 title: "La rassegna del {display_date}"
 date: {today}
 layout: post
-excerpt: "Analisi granulare di oltre 12 settori strategici con centinaia di fonti primarie."
 ---
 
-> Questo documento contiene un'analisi granulare di tutti i segnali rilevanti intercettati nelle ultime 24 ore. Ogni sezione approfondisce decine di paper, report e comunicati.
+> Questo documento contiene un'analisi granulare di tutti i segnali rilevanti intercettati nelle ultime 24 ore.
 
 ---
 """
@@ -341,7 +331,7 @@ for key, info in CLUSTERS.items():
     
     if raw_data:
         print(f"  > Trovati {len(raw_data)} articoli per {info['name']}")
-        # Limita a 50 articoli per evitare di sovraccaricare il modello
+        # Limita a 50 articoli per evitare di sovraccaricare il contesto se ci sono troppe news
         limited_raw_data = raw_data[:50]
         raw_text = "\n---\n".join(limited_raw_data)
         analysis = analyze_cluster(key, info, raw_text)
@@ -353,8 +343,8 @@ for key, info in CLUSTERS.items():
     else:
         print("  > Nessun dato grezzo trovato.")
     
-    # Aumenta il tempo di attesa
-    time.sleep(20)
+    # Pausa tattica per rate limit
+    time.sleep(15)
 
 # --- 5. SALVATAGGIO ---
 if not os.path.exists("_posts"): os.makedirs("_posts")
@@ -363,4 +353,4 @@ filename = f"_posts/{today}-brief.md"
 with open(filename, "w", encoding='utf-8') as f:
     f.write(full_report)
 
-print("Dossier Epochale Generato.")
+print(f"Dossier Epochale Generato: {filename}")
