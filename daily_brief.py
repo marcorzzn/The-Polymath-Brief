@@ -7,7 +7,7 @@ from groq import Groq
 
 # --- CONFIGURAZIONE ---
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-MAX_WORKERS = 30
+MAX_WORKERS = 5
 LOOKBACK_HOURS = 28  # Finestra ampia per non perdere nulla
 MAX_SECTION_CONTEXT = 30000 
 
