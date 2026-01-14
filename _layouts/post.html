@@ -2,68 +2,35 @@
 layout: default
 ---
 
-<div style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
+<article class="post">
+
+  <header class="post-header" style="text-align: center; margin-bottom: 40px;">
+    {% assign months = "gennaio,febbraio,marzo,aprile,maggio,giugno,luglio,agosto,settembre,ottobre,novembre,dicembre" | split: "," %}
+    {% assign m = page.date | date: "%-m" | minus: 1 %}
     
-    <div style="text-align: center; margin-bottom: 50px; border-bottom: 1px solid #e0e0e0; padding-bottom: 30px;">
-         <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 15px;">
-            Dossier Strategico &bull; {{ page.date | date: "%d %B %Y" }}
-         </div>
-         <h1 style="font-family: 'Playfair Display', serif; font-size: 3.5rem; line-height: 1.1; margin: 0; font-weight: 900; color: inherit;">
-            {{ page.title }}
-         </h1>
-    </div>
-
-    <article style="font-family: 'Inter', sans-serif; font-size: 1.2rem; line-height: 1.6; color: inherit;">
-        
-        <style>
-            /* Titoli Sezioni: Playfair Display */
-            article h2 { 
-                font-family: 'Playfair Display', serif; 
-                font-size: 2.2rem; 
-                margin-top: 60px; 
-                margin-bottom: 25px; 
-                font-weight: 700;
-                color: inherit;
-                border-bottom: 2px solid currentColor;
-                padding-bottom: 10px;
-            }
-            
-            /* Sottotitoli News */
-            article h3 { 
-                font-family: 'Inter', sans-serif; 
-                font-size: 1.4rem; 
-                font-weight: 700; 
-                margin-top: 40px; 
-                margin-bottom: 10px;
-            }
-
-            /* Testo NON Giustificato (Bandiera a sinistra) */
-            article p { 
-                margin-bottom: 25px; 
-                text-align: left; 
-            }
-
-            /* Link Fonte: Rosso e discreto */
-            article a { 
-                color: #d00; 
-                text-decoration: none; 
-                font-weight: 600; 
-                font-size: 0.9em;
-            }
-            article a:hover { text-decoration: underline; }
-
-            /* Liste */
-            article ul { padding-left: 20px; margin-bottom: 30px; }
-            article li { margin-bottom: 10px; }
-            
-            /* Rimuove HR se presente */
-            article hr { display: none; }
-        </style>
-
-        {{ content }}
+    <h1 class="post-title" style="font-family: 'Playfair Display', serif; font-size: 2.5em; margin-bottom: 10px;">
+      La rassegna del {{ page.date | date: "%-d" }} {{ months[m] }} {{ page.date | date: "%Y" }}
+    </h1>
     
-    </article>
-    
-    <div style="height: 100px;"></div>
+    </header>
 
-</div>
+  <div class="post-content" style="font-family: 'Inter', sans-serif; font-size: 1.1em; line-height: 1.8;">
+    {{ content }}
+  </div>
+
+</article>
+
+<style>
+  .post-content a {
+    color: #d63384; /* Colore Fucsia/Rosso */
+    font-weight: bold;
+    text-decoration: none;
+    border-bottom: 1px solid #d63384;
+  }
+  .post-content a:hover {
+    background-color: #d63384;
+    color: white;
+  }
+  /* Rimuove HR se presente */
+  hr { display: none !important; }
+</style>
